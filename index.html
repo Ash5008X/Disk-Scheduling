@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Disk Scheduling Simulator</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+            <circle cx="11" cy="11" r="9" stroke="#6c63ff" stroke-width="1.8"/>
+            <circle cx="11" cy="11" r="4" stroke="#6c63ff" stroke-width="1.4"/>
+            <circle cx="11" cy="11" r="1.4" fill="#6c63ff"/>
+            <line x1="11" y1="2" x2="11" y2="5" stroke="#6c63ff" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <span>Disk Scheduling Simulator</span>
+      </div>
+      <div class="header-badge">OS Concept Visualizer</div>
+    </div>
+  </header>
+
+  <main>
+    <!-- LEFT PANEL: Controls -->
+    <section class="panel panel-left">
+
+      <div class="panel-section">
+        <h3 class="section-label">Input Configuration</h3>
+
+        <div class="field">
+          <label for="reqInput">Disk Request Queue</label>
+          <input type="text" id="reqInput" value="98, 183, 37, 122, 14, 124, 65, 67"
+            placeholder="e.g. 98, 183, 37, 122..." />
+          <span class="hint">Enter cylinder numbers separated by commas</span>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="headInput">Initial Head Position</label>
+            <input type="number" id="headInput" value="53" min="0" max="999" />
+          </div>
+          <div class="field">
+            <label for="diskSize">Disk Size (Cylinders)</label>
+            <input type="number" id="diskSize" value="200" min="50" max="1000" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="dirInput">Head Direction (SCAN / C-SCAN)</label>
+          <select id="dirInput">
+            <option value="right">Right — toward higher cylinders</option>
+            <option value="left">Left — toward lower cylinders</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h3 class="section-label">Select Algorithm</h3>
+        <div class="algo-grid">
+          <button class="algo-btn active" data-algo="FCFS">
+            <span class="algo-short">FCFS</span>
+            <span class="algo-long">First Come First Served</span>
+          </button>
+          <button class="algo-btn" data-algo="SSTF">
+            <span class="algo-short">SSTF</span>
+            <span class="algo-long">Shortest Seek Time First</span>
+          </button>
+          <button class="algo-btn" data-algo="SCAN">
+            <span class="algo-short">SCAN</span>
+            <span class="algo-long">Elevator Algorithm</span>
+          </button>
+          <button class="algo-btn" data-algo="CSCAN">
+            <span class="algo-short">C-SCAN</span>
+            <span class="algo-long">Circular SCAN</span>
+          </button>
+        </div>
+      </div>
+
+      <button class="run-btn" id="runBtn" onclick="runSimulation()">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <polygon points="4,2 14,8 4,14" fill="currentColor"/>
+        </svg>
+        Run Simulation
+      </button>
+
+      <div class="panel-section">
+        <h3 class="section-label">Quick Examples</h3>
+        <div class="examples">
+          <button class="ex-btn" onclick="loadExample('classic')">Classic Example</button>
+          <button class="ex-btn" onclick="loadExample('scattered')">Scattered Requests</button>
+          <button class="ex-btn" onclick="loadExample('clustered')">Clustered Requests</button>
+        </div>
+      </div>
+
+      <!-- Algorithm Info Card -->
+      <div class="info-card" id="algoInfo">
+        <div class="info-title" id="infoTitle">FCFS — First Come First Served</div>
+        <div class="info-body" id="infoBody">
+          Processes disk requests in the exact order they arrive. Simple to implement but may result in high seek times due to zigzag head movement.
+        </div>
+        <div class="info-props">
+          <div class="prop"><span class="prop-label">Complexity</span><span class="prop-val" id="infoComplexity">O(n)</span></div>
+          <div class="prop"><span class="prop-label">Starvation</span><span class="prop-val" id="infoStarve">No</span></div>
+          <div class="prop"><span class="prop-label">Best for</span><span class="prop-val" id="infoBest">Fairness</span></div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- RIGHT PANEL: Results -->
+    <section class="panel panel-right">
+
+      <!-- Metrics Row -->
+      <div class="metrics-row">
+        <div class="metric-card">
+          <div class="metric-label">Total Seek Distance</div>
+          <div class="metric-value" id="mTotal">—</div>
+          <div class="metric-unit">cylinders</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Average Seek Time</div>
+          <div class="metric-value" id="mAvg">—</div>
+          <div class="metric-unit">cylinders / request</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Requests Served</div>
+          <div class="metric-value" id="mCount">—</div>
+          <div class="metric-unit">total requests</div>
+        </div>
+        <div class="metric-card highlight-metric">
+          <div class="metric-label">Throughput Index</div>
+          <div class="metric-value" id="mThru">—</div>
+          <div class="metric-unit">higher = better</div>
+        </div>
+      </div>
+
+      <!-- Head Movement Chart -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <span class="chart-title" id="chartTitle">Head Movement Visualization</span>
+          <span class="chart-algo-badge" id="chartBadge">Select an algorithm</span>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="seekCanvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Service Sequence -->
+      <div class="seq-card">
+        <div class="seq-header">
+          <span class="seq-title">Service Sequence</span>
+          <span class="seq-count" id="seqCount"></span>
+        </div>
+        <div class="seq-scroll" id="seqBadges">
+          <span class="seq-empty">Run a simulation to see the service order</span>
+        </div>
+      </div>
+
+      <!-- Step-by-step table -->
+      <div class="table-card">
+        <div class="table-header">
+          <span class="table-title">Step-by-Step Breakdown</span>
+        </div>
+        <div class="table-wrap">
+          <table id="stepTable">
+            <thead>
+              <tr>
+                <th>Step</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Seek Distance</th>
+                <th>Cumulative</th>
+              </tr>
+            </thead>
+            <tbody id="stepBody">
+              <tr><td colspan="5" class="empty-row">No data yet — run a simulation</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Compare All Algorithms -->
+      <div class="compare-card-outer">
+        <div class="compare-header">Algorithm Comparison (same input)</div>
+        <div class="compare-grid" id="compareGrid">
+          <div class="compare-empty">Run a simulation to compare all algorithms</div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <footer>
+    <span>Disk Scheduling Simulator &mdash; OS Lab Project</span>
+    <span>Algorithms: FCFS &middot; SSTF &middot; SCAN &middot; C-SCAN</span>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

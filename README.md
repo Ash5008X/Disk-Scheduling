@@ -2,11 +2,6 @@
 
 A fully interactive OS-concept visualizer for disk scheduling algorithms, built with plain HTML, CSS, and JavaScript — no frameworks, no dependencies.
 
-## How to Run
-
-1. Unzip the folder
-2. Open `index.html` in any modern browser (Chrome, Firefox, Edge)
-3. That's it! No server needed.
 
 ## Algorithms Implemented
 
